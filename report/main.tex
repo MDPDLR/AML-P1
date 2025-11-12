@@ -48,6 +48,7 @@
 We address a supervised binary classification problem: predicting loan approval from mixed tabular data containing both numerical and categorical features. Our objective is to evaluate three foundational methods from Part I of the course: a discriminative Generalized Linear Model (Logistic Regression), a Bayesian generative classifier (Naive Bayes), and a margin-based linear classifier (Linear SVM). \\
 
 %     (2) The main methods/techniques you applied (from the corresponding course part)
+% Do we care about the pipeline? Focus on the comparison of methods.
 We construct a consistent and leakage-free preprocessing pipeline, including the removal of identifier variables, the encoding of categorical features, and the standardization of numerical attributes. All transformations are fitted exclusively on the training data within cross-validation folds to ensure methodological soundness. Performance will be evaluated using standard metrics for binary classification, including ROC-AUC, accuracy, and class-wise measures. \\
 
 %     (3) The key results or findings
@@ -66,11 +67,11 @@ We construct a consistent and leakage-free preprocessing pipeline, including the
 %    (1) The problem you are addressing: what is it, why is it important or interesting?
 Access to credit is one of the main factors influencing economic inclusion, yet loan approval decisions often rely on multiple socio-economic and financial criteria. 
 %    (2) Brief background: what makes this problem challenging?
-Predicting whether an applicant will obtain a loan is therefore a useful and socially relevant problem, which also provides an interesting case study for applying probabilistic and linear models in machine learning.\\
+The presented dataset offers a great example on how financial entities rate their customers based on the data they have from them. There are two variables in the dataset that have been fabricated for this propose, "Credit Score" which is a financial risk score calculated from credit information by means of a standardized formula, and "Points". This last variable turns out to be the deciding factor used to determine the approval since it linearly separates the data in only one dimension. We will opt to use this variable or not depending on whether it has pedagogical meaning for the discussed model. %NOT SURE ABOUT THIS%
 
 %    (3) Your approach: what methods from the course are you applying? (mention Part I/II/III)
-The dataset used in this work includes both numerical and categorical features describing applicants’ profiles and their corresponding loan approval outcomes. 
-Such data naturally involves uncertainty and feature correlations, making it suitable for exploring the concepts introduced in \emph{Part I} of the course, namely Bayesian reasoning, Generalized Linear Models (GLMs), and linear discriminant methods.\\
+The dataset used in this work includes mostly numerical features, with only one ordinal features describing applicants’ profiles and their corresponding loan approval outcomes. 
+Such data naturally involves uncertainty and feature correlations, making it suitable for exploring the concepts introduced in \emph{Part I} of the course, namely Bayesian reasoning, Generalized Linear Models (GLMs), and linear discriminant methods. For completeness we will fabricate a categorical feature by classifying the applicants by their work experience.\\
 
 We focus on three complementary approaches:
 \begin{itemize}
@@ -88,7 +89,7 @@ We aim to analyze how each algorithm behaves on the same financial dataset, disc
 %    (5) Structure: briefly outline the rest of the document ("The rest of this report is organized as follows...")
 The rest of this report is organized as follows. 
 Section~\ref{sec:problem} formalizes the prediction problem. 
-Section~\ref{sec:related} briefly reviews related works and previous approaches. 
+Section~\ref{sec:related} briefly reviews related works and previous approaches. % I would delete.
 Section~\ref{sec:data} describes the dataset and preprocessing pipeline. 
 Section~\ref{sec:methodology} presents the applied methods and experimental setup. 
 Section~\ref{sec:discussion} discusses the results and insights. 
@@ -153,17 +154,18 @@ A careful understanding of the data and its preparation is essential to ensure t
 %    
 %    A well-formatted table summarizing dataset characteristics is very useful here. \emph{See the project guide for more details}.
     
-The dataset, entitled \emph{\href{https://www.kaggle.com/datasets/anishdevedward/loan-approval-dataset}{Loan Approval Dataset}}, was obtained from an open-access financial repository on Kaggle and contains information about applicants and their corresponding loan approval status. 
-It includes both numerical and categorical features that describe socio-economic and financial characteristics such as income, credit score, employment type, and marital status. 
+The dataset, entitled \emph{\href{https://www.kaggle.com/datasets/anishdevedward/loan-approval-dataset}{Loan Approval Dataset}}, was obtained from Kaggle and contains information about applicants and their corresponding loan approval status. Upon inspecting the details of the data we found it to be artificially generated using Faker Library.
+It includes both numerical and categorical features that describe socio-economic and financial characteristics such as income, credit score, years employed, and loan amount. 
 The target variable indicates whether a loan application was approved or not, making this a binary classification problem.\\
 
 Two columns, \texttt{name} and \texttt{city}, were removed. 
 The first one was unique for each applicant and therefore non-informative, while the second contained too few repetitions (maximum frequency of 4), making it irrelevant for the model. 
-After removing these variables, the dataset contained a mixture of continuous and categorical attributes suitable for the models considered in this project.\\
+After removing these variables, the dataset was left with only continuous attributes.
 
-No missing data or outliers were detected, which simplified preprocessing and ensured that no imputation or cleaning procedures were necessary. 
-The class distribution was relatively balanced, meaning that no reweighting or resampling techniques were required.
+No missing data or outliers were detected, which simplified preprocessing and ensured that no imputation or cleaning procedures were necessary, as one would expect from fabricated data. 
 
+
+% Should update to new feature.
     \begin{table}[H]
         \centering
         \caption{Dataset characteristics after cleaning.}
@@ -211,20 +213,16 @@ No outliers or implausible values were observed.\\
     \label{fig:boxplots}
 \end{figure}
 
-As shown in Figure~\ref{fig:boxplots}, 
-loan approval is strongly associated with higher values of \texttt{income}, \texttt{credit\_score}, and \texttt{points}, 
-confirming the relevance of financial stability indicators in credit assessment. 
+As shown in Figure~\ref{fig:boxplots}, loan approval is strongly associated with higher values of \texttt{income}, \texttt{credit\_score}, and \texttt{points}, confirming the relevance of financial stability indicators in credit assessment.
 By contrast, \texttt{loan\_amount} and \texttt{years\_employed} display weaker class separation, suggesting they contribute less to the predictive task.\\
+The feature \texttt{points} is special since the classes can be linearly separated by only looking at this variable, suggesting that this is an indicator computed by the financial entity to decide weather a loan should be accepted or not.
 
     % (2) Identification of patterns, outliers, correlations
 \paragraph{Correlation analysis.}
-To assess potential redundancy and feature interdependence, 
-the Pearson correlation matrix was computed for all numerical variables (Figure~\ref{fig:corr}). 
-The analysis reveals a strong positive correlation ($r \approx 0.74$) between \texttt{credit\_score} and \texttt{points}, 
-and a moderate one ($r \approx 0.45$) between \texttt{income} and \texttt{points}. 
-These relationships are expected given the shared financial nature of the indicators. 
-Importantly, the correlation values remain below critical thresholds, 
-indicating no severe multicollinearity that would compromise model interpretability or stability.\\
+To assess potential redundancy and feature interdependence, the Pearson correlation matrix was computed for all numerical variables (Figure~\ref{fig:corr}). 
+The analysis reveals a strong positive correlation ($r \approx 0.74$) between \texttt{credit\_score} and \texttt{points}, and a moderate one ($r \approx 0.45$) between \texttt{income} and \texttt{points}. 
+These relationships are expected given the shared financial nature of the indicators and it is consistent with  the theory of the \texttt{points} feature being a combination of the other metric to create a final de metric upon which the entity takes decisions.
+Importantly, the correlation values remain below critical thresholds, indicating no severe multicollinearity that would compromise model interpretability or stability.\\
 
 \begin{figure}[H]
     \centering
@@ -233,8 +231,13 @@ indicating no severe multicollinearity that would compromise model interpretabil
     \label{fig:corr}
 \end{figure}
 
-Overall, the exploratory analysis confirms that the dataset is clean, balanced, and well-suited for evaluating probabilistic and linear classification methods. 
-The insights gained here, particularly the correlation between key financial features, will be directly leveraged in the modeling phase to interpret each algorithm’s behavior.
+Overall, the exploratory analysis confirms that the dataset is clean, balanced, and well-suited for evaluating probabilistic and linear classification methods.
+However, two decisions where taken at this stage:
+\begin{enumerate}
+    \item Since the inclusion of the feature \texttt{points} into the models may lead to perfect scores when those models can make use of the fact that the classes are linearly separable along this feature. The project aims to discuss the effect of leaving or excluding the variable for each modeling approach.
+    \item Given that the dataset lacks categorical variables, a new variable was included to showcase the ability of the studied machine learning models to account for this kind of variables. This new variable was a boolean representing those applicants with less than 10 years of experience.\\
+\end{enumerate}
+The insights gained here, particularly the correlation between key financial features, will be directly leveraged in the modeling phase to interpret each algorithm’s behavior and hopefully find out how the feature \texttt{points} was computed.
 
 
     \subsection{Preprocessing steps}
@@ -282,6 +285,9 @@ To evaluate the effect of scaling, we visualized feature distributions before an
     preserving the shape of the data while ensuring comparability across features.}
     \label{fig:scaling}
 \end{figure}
+
+Lastly, the new metric \texttt{plus\_10y\_exp} was created by assigning 0 to instances where $years\_employed<10$ and 1 otherwise.
+
 
 Overall, preprocessing primarily involved removing redundant variables and applying standardization. These steps yielded a consistent and theoretically sound dataset suitable for rigorous comparison across the three selected learning algorithms.
 
